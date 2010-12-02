@@ -22,7 +22,7 @@ public class DatabaseCreator {
 			dbStatement.executeUpdate(query);
 			
 			query = "CREATE TABLE artist (artist_id INTEGER PRIMARY KEY," +
-			" artist_first_name STRING, artist_last_name STRING)";
+			" artist_name STRING)";
 			dbStatement.executeUpdate(query);
 		} catch (SQLException e) {
 			e.printStackTrace();

@@ -11,8 +11,8 @@ import org.farng.mp3.id3.ID3v1;
 
 public class SongHandler {
 	private static final Exception AlbumNotInDatabaseException = null;
+	private static final Exception ArtistNotInDatabaseException = null;
 	private static final Exception InsertFailedException = null;
-	private static final Exception NotYetImplementedException = null;
 	Connection dbConnection;
 	Statement  dbStatement;
 
@@ -51,10 +51,10 @@ public class SongHandler {
 			this.prepareConnection();
 		}
 
-		if(doesSongExistInDatabase(songToAdd)) {
+		if(doesSongExist(songToAdd)) {
 			return;
 		}
-		if(!doesAlbumExistInDatabase(songToAdd)) {
+		if(!doesAlbumExist(songToAdd)) {
 			this.addAlbum(songToAdd);
 		}
 
@@ -67,11 +67,11 @@ public class SongHandler {
 		if(!dbStatement.execute(query)) {
 			throw InsertFailedException;
 		}
-		
+
 		this.closeConnection();
 	}
 
-	private boolean doesSongExistInDatabase(MP3File songToAdd) {
+	private boolean doesSongExist(MP3File songToAdd) {
 		boolean found = false;
 		if(dbConnection == null) {
 			this.prepareConnection();
@@ -95,7 +95,7 @@ public class SongHandler {
 		return found;
 	}
 
-	private boolean doesAlbumExistInDatabase(MP3File song) {
+	private boolean doesAlbumExist(MP3File song) {
 		boolean found = false;
 		ID3v1 songTag = song.getID3v1Tag();
 		if(dbConnection == null) {
@@ -106,6 +106,27 @@ public class SongHandler {
 			String query = "SELECT * FROM album WHERE " +
 			"album_name = '" + songTag.getAlbumTitle() + "' AND " +
 			"album_year = '" + songTag.getYearReleased() + "'";
+			ResultSet rs = dbStatement.executeQuery(query);
+			if(!rs.next()) {
+				found = true;
+			}
+			rs.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return found;
+	}
+
+	private boolean doesArtistExist(MP3File song) {
+		boolean found = false;
+		ID3v1 songTag = song.getID3v1Tag();
+		if(dbConnection == null) {
+			this.prepareConnection();
+		}
+
+		try {
+			String query = "SELECT * FROM artist WHERE " +
+			"artist = '" + songTag.getArtist() + "'";
 			ResultSet rs = dbStatement.executeQuery(query);
 			if(!rs.next()) {
 				found = true;
@@ -139,8 +160,50 @@ public class SongHandler {
 		}
 		return -1;
 	}
+	
+	private int getArtistID(MP3File song) throws Exception {
+		ID3v1 songTag = song.getID3v1Tag();
+		if(dbConnection == null) {
+			this.prepareConnection();
+		}
+
+		String query = "SELECT artist_id FROM artist WHERE " +
+		"artist_name = '" + songTag.getArtist() + "'";
+		ResultSet rs;
+		try {
+			rs = dbStatement.executeQuery(query);
+			if(!rs.next()) {
+				throw ArtistNotInDatabaseException;
+			} else {
+				return Integer.parseInt(rs.getString("artist_id"));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return -1;
+	}
 
 	private void addAlbum(MP3File songToAdd) throws Exception {
-		throw NotYetImplementedException;
+		ID3v1 songTag = songToAdd.getID3v1Tag();
+		if(dbConnection == null) {
+			this.prepareConnection();
+		}
+		
+		if(!doesArtistExist(songToAdd)) {
+			this.addArtist(songToAdd);
+		}
+		String query = "INSERT INTO album (album_name, album_year, artist_id)" +
+		" VALUES ('" + songTag.getAlbumTitle() + "', '" +
+		songTag.getYearReleased() + "', '" + this.getArtistID(songToAdd) +"')";
+		if(!dbStatement.execute(query)) {
+			throw InsertFailedException;
+		}
+	}
+
+	private void addArtist(MP3File songToAdd) {
+		if(dbConnection == null) {
+			this.prepareConnection();
+		}
+		
 	}
 }
