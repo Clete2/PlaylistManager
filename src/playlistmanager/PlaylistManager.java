@@ -7,7 +7,7 @@ public class PlaylistManager
 	public static void main(String[] args)
 	{
 		if(!(new File(PlaylistVariables.getFullDBName()).exists())) {
-			// Create DB. DB does not exist.
+			// DB does not exist. Create DB.
 			DatabaseCreator.createDatabase();
 		}
 	}
