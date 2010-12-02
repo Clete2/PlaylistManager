@@ -3,17 +3,22 @@ package playlistmanager;
 public final class PlaylistVariables {
 	private final static String dbPath = "database/";
 	private final static String dbFile = "playlist.db";
+	private final static String scanPath = "/Users/Clete2/Music/";
 	
-	public static String getDBPath() {
+	public final static String getDBPath() {
 		return dbPath;
 	}
 	
-	public static String getDBFile() {
+	public final static String getDBFile() {
 		return dbFile;
 	}
 	
-	public static String getFullDBName() {
+	public final static String getFullDBName() {
 		return dbPath + dbFile;
+	}
+	
+	public final static String getScanPath() {
+		return scanPath;
 	}
 }
 

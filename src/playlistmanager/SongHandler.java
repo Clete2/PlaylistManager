@@ -3,6 +3,7 @@ package playlistmanager;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -16,7 +17,6 @@ public class SongHandler {
 	private static final Exception AlbumNotInDatabaseException = null;
 	private static final Exception ArtistNotInDatabaseException = null;
 	private Connection dbConnection;
-	private Statement  dbStatement;
 
 	private void prepareConnection() {
 		// Load SQLite JDBC driver.
@@ -29,8 +29,6 @@ public class SongHandler {
 		try {
 			dbConnection = DriverManager.getConnection("jdbc:sqlite:" +
 					PlaylistVariables.getFullDBName());
-			dbStatement = dbConnection.createStatement();
-			dbStatement.setQueryTimeout(30); // 30 second timeout.
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -64,14 +62,13 @@ public class SongHandler {
 
 		String query = "INSERT INTO songs (song_title," +
 		" album_id, song_genre, song_rating, absolute_path)" +
-		" VALUES ('" +
-		songTag.getFirst(FieldKey.TITLE) + "', '" +
-		this.getAlbumID(songToAdd) + "', '" +
-		songTag.getFirst(FieldKey.GENRE) + "'," +
-		" null, '" + 
-		songToAdd.getAbsolutePath() + "')";
-		dbStatement.executeUpdate(query);
-
+		" VALUES (?, ?, ?, null, ?)";
+		PreparedStatement ps = dbConnection.prepareStatement(query);
+		ps.setString(1, songTag.getFirst(FieldKey.TITLE));
+		ps.setInt(2, this.getAlbumID(songToAdd));
+		ps.setString(3, songTag.getFirst(FieldKey.GENRE));
+		ps.setString(4, songToAdd.getAbsolutePath());
+		ps.executeUpdate();
 		this.closeConnection();
 	}
 
@@ -81,12 +78,12 @@ public class SongHandler {
 			this.prepareConnection();
 		}
 
-		String query = "SELECT * FROM songs WHERE " +
-		"absolute_path = '" + songToAdd.getAbsolutePath() + "'";
-
-		ResultSet rs;
 		try {
-			rs = dbStatement.executeQuery(query);
+			String query = "SELECT * FROM songs WHERE " +
+			"absolute_path = ?";
+			PreparedStatement ps = dbConnection.prepareStatement(query);
+			ps.setString(1, songToAdd.getAbsolutePath());
+			ResultSet rs = ps.executeQuery();
 			if(rs.next()) {
 				found = true;
 			}
@@ -107,10 +104,12 @@ public class SongHandler {
 		}
 
 		try {
-			String query = "SELECT * FROM album WHERE " +
-			"album_name = '" + songTag.getFirst(FieldKey.ALBUM) + "' AND " +
-			"album_year = '" + songTag.getFirst(FieldKey.YEAR) + "'";
-			ResultSet rs = dbStatement.executeQuery(query);
+			String query = "SELECT * FROM album WHERE album_name = ? AND" +
+					" album_year = ?";
+			PreparedStatement ps = dbConnection.prepareStatement(query);
+			ps.setString(1, songTag.getFirst(FieldKey.ALBUM));
+			ps.setString(2, songTag.getFirst(FieldKey.YEAR));
+			ResultSet rs = ps.executeQuery();
 			if(rs.next()) {
 				found = true;
 			}
@@ -131,8 +130,10 @@ public class SongHandler {
 
 		try {
 			String query = "SELECT * FROM artist WHERE " +
-			"artist_name = '" + songTag.getFirst(FieldKey.ARTIST) + "'";
-			ResultSet rs = dbStatement.executeQuery(query);
+			"artist_name = ?";
+			PreparedStatement ps = dbConnection.prepareStatement(query);
+			ps.setString(1, songTag.getFirst(FieldKey.ARTIST));
+			ResultSet rs = ps.executeQuery();
 			if(rs.next()) {
 				found = true;
 			}
@@ -150,11 +151,13 @@ public class SongHandler {
 			this.prepareConnection();
 		}
 
-		String query = "SELECT album_id FROM album WHERE " +
-		"album_name = '" + songTag.getFirst(FieldKey.ALBUM) + "' AND " +
-		"album_year = '" + songTag.getFirst(FieldKey.YEAR) + "'";
 		try {
-			ResultSet rs = dbStatement.executeQuery(query);
+			String query = "SELECT album_id FROM album WHERE " +
+			"album_name = ? AND album_year = ?";
+			PreparedStatement ps = dbConnection.prepareStatement(query);
+			ps.setString(1, songTag.getFirst(FieldKey.ALBUM));
+			ps.setString(2, songTag.getFirst(FieldKey.YEAR));
+			ResultSet rs = ps.executeQuery();
 			if(!rs.next()) {
 				throw AlbumNotInDatabaseException;
 			} else {
@@ -173,11 +176,12 @@ public class SongHandler {
 			this.prepareConnection();
 		}
 
-		String query = "SELECT artist_id FROM artist WHERE " +
-		"artist_name = '" + songTag.getFirst(FieldKey.ARTIST) + "'";
-		ResultSet rs;
 		try {
-			rs = dbStatement.executeQuery(query);
+			String query = "SELECT artist_id FROM artist WHERE " +
+			"artist_name = ?";
+			PreparedStatement ps = dbConnection.prepareStatement(query);
+			ps.setString(1, songTag.getFirst(FieldKey.ARTIST));
+			ResultSet rs = ps.executeQuery();
 			if(!rs.next()) {
 				throw ArtistNotInDatabaseException;
 			} else {
@@ -200,10 +204,12 @@ public class SongHandler {
 			this.addArtist(songToAdd);
 		}
 		String query = "INSERT INTO album (album_name, album_year, artist_id)" +
-		" VALUES ('" + songTag.getFirst(FieldKey.ALBUM) + "', '" +
-		songTag.getFirst(FieldKey.YEAR) + "', '" +
-		this.getArtistID(songToAdd) + "')";
-		dbStatement.executeUpdate(query);
+		" VALUES (?, ?, ?)";
+		PreparedStatement ps = dbConnection.prepareStatement(query);
+		ps.setString(1, songTag.getFirst(FieldKey.ALBUM));
+		ps.setString(2, songTag.getFirst(FieldKey.YEAR));
+		ps.setInt(3, this.getArtistID(songToAdd));		
+		ps.executeUpdate();
 	}
 
 	private void addArtist(File songToAdd) throws Exception {
@@ -213,8 +219,9 @@ public class SongHandler {
 			this.prepareConnection();
 		}
 		
-		String query = "INSERT INTO artist (artist_name) VALUES" +
-		" ('" + songTag.getFirst(FieldKey.ARTIST) + "')";
-		dbStatement.executeUpdate(query);
+		String query = "INSERT INTO artist (artist_name) VALUES (?)";
+		PreparedStatement ps = dbConnection.prepareStatement(query);
+		ps.setString(1, songTag.getFirst(FieldKey.ARTIST));
+		ps.executeUpdate();
 	}
 }
