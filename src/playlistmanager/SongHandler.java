@@ -1,20 +1,22 @@
 package playlistmanager;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.farng.mp3.MP3File;
-import org.farng.mp3.id3.ID3v1;
+import org.jaudiotagger.audio.AudioFile;
+import org.jaudiotagger.audio.AudioFileIO;
+import org.jaudiotagger.tag.FieldKey;
+import org.jaudiotagger.tag.Tag;
 
 public class SongHandler {
 	private static final Exception AlbumNotInDatabaseException = null;
 	private static final Exception ArtistNotInDatabaseException = null;
-	private static final Exception InsertFailedException = null;
-	Connection dbConnection;
-	Statement  dbStatement;
+	private Connection dbConnection;
+	private Statement  dbStatement;
 
 	private void prepareConnection() {
 		// Load SQLite JDBC driver.
@@ -45,8 +47,10 @@ public class SongHandler {
 		}
 	}
 
-	public void addSong(MP3File songToAdd) throws Exception {
-		ID3v1 songTag = songToAdd.getID3v1Tag();
+	public void addSong(File songToAdd) throws Exception {
+		AudioFile audioFile = AudioFileIO.read(songToAdd);
+		Tag songTag = audioFile.getTag();
+		
 		if(dbConnection == null) {
 			this.prepareConnection();
 		}
@@ -58,28 +62,27 @@ public class SongHandler {
 			this.addAlbum(songToAdd);
 		}
 
-		String query = "INSERT INTO songs (song_title, song_artist," +
+		String query = "INSERT INTO songs (song_title," +
 		" album_id, song_genre, song_rating, absolute_path)" +
-		" VALUES ('" + this.getAlbumID(songToAdd) + "', '" +
-		songTag.getGenre() + "', '', '" + 
-		songToAdd.getMp3file().getAbsolutePath() + "')";
-
-		if(!dbStatement.execute(query)) {
-			throw InsertFailedException;
-		}
+		" VALUES ('" +
+		songTag.getFirst(FieldKey.TITLE) + "', '" +
+		this.getAlbumID(songToAdd) + "', '" +
+		songTag.getFirst(FieldKey.GENRE) + "'," +
+		" null, '" + 
+		songToAdd.getAbsolutePath() + "')";
+		dbStatement.executeUpdate(query);
 
 		this.closeConnection();
 	}
 
-	private boolean doesSongExist(MP3File songToAdd) {
+	private boolean doesSongExist(File songToAdd) {
 		boolean found = false;
 		if(dbConnection == null) {
 			this.prepareConnection();
 		}
 
 		String query = "SELECT * FROM songs WHERE " +
-		"absolute_path = '" + songToAdd.getMp3file()
-		.getAbsolutePath() + "'";
+		"absolute_path = '" + songToAdd.getAbsolutePath() + "'";
 
 		ResultSet rs;
 		try {
@@ -95,19 +98,20 @@ public class SongHandler {
 		return found;
 	}
 
-	private boolean doesAlbumExist(MP3File song) {
+	private boolean doesAlbumExist(File song) throws Exception {
 		boolean found = false;
-		ID3v1 songTag = song.getID3v1Tag();
+		AudioFile audioFile = AudioFileIO.read(song);
+		Tag songTag = audioFile.getTag();
 		if(dbConnection == null) {
 			this.prepareConnection();
 		}
 
 		try {
 			String query = "SELECT * FROM album WHERE " +
-			"album_name = '" + songTag.getAlbumTitle() + "' AND " +
-			"album_year = '" + songTag.getYearReleased() + "'";
+			"album_name = '" + songTag.getFirst(FieldKey.ALBUM) + "' AND " +
+			"album_year = '" + songTag.getFirst(FieldKey.YEAR) + "'";
 			ResultSet rs = dbStatement.executeQuery(query);
-			if(!rs.next()) {
+			if(rs.next()) {
 				found = true;
 			}
 			rs.close();
@@ -117,18 +121,19 @@ public class SongHandler {
 		return found;
 	}
 
-	private boolean doesArtistExist(MP3File song) {
+	private boolean doesArtistExist(File song) throws Exception {
 		boolean found = false;
-		ID3v1 songTag = song.getID3v1Tag();
+		AudioFile audioFile = AudioFileIO.read(song);
+		Tag songTag = audioFile.getTag();
 		if(dbConnection == null) {
 			this.prepareConnection();
 		}
 
 		try {
 			String query = "SELECT * FROM artist WHERE " +
-			"artist = '" + songTag.getArtist() + "'";
+			"artist_name = '" + songTag.getFirst(FieldKey.ARTIST) + "'";
 			ResultSet rs = dbStatement.executeQuery(query);
-			if(!rs.next()) {
+			if(rs.next()) {
 				found = true;
 			}
 			rs.close();
@@ -138,18 +143,18 @@ public class SongHandler {
 		return found;
 	}
 
-	private int getAlbumID(MP3File song) throws Exception {
-		ID3v1 songTag = song.getID3v1Tag();
+	private int getAlbumID(File song) throws Exception {
+		AudioFile audioFile = AudioFileIO.read(song);
+		Tag songTag = audioFile.getTag();
 		if(dbConnection == null) {
 			this.prepareConnection();
 		}
 
 		String query = "SELECT album_id FROM album WHERE " +
-		"album_name = '" + songTag.getAlbumTitle() + "' AND " +
-		"album_yead = '" + songTag.getYearReleased() + "'";
-		ResultSet rs;
+		"album_name = '" + songTag.getFirst(FieldKey.ALBUM) + "' AND " +
+		"album_year = '" + songTag.getFirst(FieldKey.YEAR) + "'";
 		try {
-			rs = dbStatement.executeQuery(query);
+			ResultSet rs = dbStatement.executeQuery(query);
 			if(!rs.next()) {
 				throw AlbumNotInDatabaseException;
 			} else {
@@ -161,14 +166,15 @@ public class SongHandler {
 		return -1;
 	}
 	
-	private int getArtistID(MP3File song) throws Exception {
-		ID3v1 songTag = song.getID3v1Tag();
+	private int getArtistID(File song) throws Exception {
+		AudioFile audioFile = AudioFileIO.read(song);
+		Tag songTag = audioFile.getTag();
 		if(dbConnection == null) {
 			this.prepareConnection();
 		}
 
 		String query = "SELECT artist_id FROM artist WHERE " +
-		"artist_name = '" + songTag.getArtist() + "'";
+		"artist_name = '" + songTag.getFirst(FieldKey.ARTIST) + "'";
 		ResultSet rs;
 		try {
 			rs = dbStatement.executeQuery(query);
@@ -183,8 +189,9 @@ public class SongHandler {
 		return -1;
 	}
 
-	private void addAlbum(MP3File songToAdd) throws Exception {
-		ID3v1 songTag = songToAdd.getID3v1Tag();
+	private void addAlbum(File songToAdd) throws Exception {
+		AudioFile audioFile = AudioFileIO.read(songToAdd);
+		Tag songTag = audioFile.getTag();
 		if(dbConnection == null) {
 			this.prepareConnection();
 		}
@@ -193,17 +200,21 @@ public class SongHandler {
 			this.addArtist(songToAdd);
 		}
 		String query = "INSERT INTO album (album_name, album_year, artist_id)" +
-		" VALUES ('" + songTag.getAlbumTitle() + "', '" +
-		songTag.getYearReleased() + "', '" + this.getArtistID(songToAdd) +"')";
-		if(!dbStatement.execute(query)) {
-			throw InsertFailedException;
-		}
+		" VALUES ('" + songTag.getFirst(FieldKey.ALBUM) + "', '" +
+		songTag.getFirst(FieldKey.YEAR) + "', '" +
+		this.getArtistID(songToAdd) + "')";
+		dbStatement.executeUpdate(query);
 	}
 
-	private void addArtist(MP3File songToAdd) {
+	private void addArtist(File songToAdd) throws Exception {
+		AudioFile audioFile = AudioFileIO.read(songToAdd);
+		Tag songTag = audioFile.getTag();
 		if(dbConnection == null) {
 			this.prepareConnection();
 		}
 		
+		String query = "INSERT INTO artist (artist_name) VALUES" +
+		" ('" + songTag.getFirst(FieldKey.ARTIST) + "')";
+		dbStatement.executeUpdate(query);
 	}
 }

@@ -13,8 +13,8 @@ public class DatabaseCreator {
 		try {
 			DatabaseCreator.prepareConnection();
 			String query = "CREATE TABLE songs (song_id INTEGER PRIMARY KEY," +
-			" song_title STRING, song_artist STRING, album_id INTEGER," +
-			" song_genre STRING, song_rating INTEGER, absolute_path STRING)";
+			" song_title STRING, album_id INTEGER, song_genre STRING," +
+			" song_rating INTEGER, absolute_path STRING)";
 			dbStatement.executeUpdate(query);
 			
 			query = "CREATE TABLE album (album_id INTEGER PRIMARY KEY," +
