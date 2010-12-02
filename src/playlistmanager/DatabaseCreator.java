@@ -11,14 +11,13 @@ public class DatabaseCreator {
 	
 	public static void createDatabase() {
 		DatabaseCreator.prepareConnection();
-		String sql = "CREATE TABLE songs (song_id integer," +
-			" song_title string, song_artist string, album_id integer," +
-			" song_genre string, song_rating string)";
+		String sql = "CREATE TABLE songs (song_id INTEGER PRIMARY KEY," +
+			" song_title STRING, song_artist STRING, album_id INTEGER," +
+			" song_genre STRING, song_rating INTEGER, absolute_path STRING)";
 		
 		try {
 			dbStatement.executeUpdate(sql);
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		DatabaseCreator.closeConnection();
@@ -29,7 +28,6 @@ public class DatabaseCreator {
 		try {
 			Class.forName("org.sqlite.JDBC");
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -39,7 +37,6 @@ public class DatabaseCreator {
 			dbStatement = dbConnection.createStatement();
 			dbStatement.setQueryTimeout(30); // 30 second timeout.
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -49,7 +46,6 @@ public class DatabaseCreator {
 			try {
 				dbConnection.close();
 			} catch (SQLException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
