@@ -11,6 +11,7 @@ public class DatabaseCreator {
 
 	public static void createDatabase() {
 		try {
+			// TODO Refactor so that album has genre instead of song
 			DatabaseCreator.prepareConnection();
 			String query = "CREATE TABLE songs (song_id INTEGER PRIMARY KEY," +
 			" song_title STRING, album_id INTEGER, song_genre STRING," +

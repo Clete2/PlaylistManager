@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.logging.LogManager;
 
 public class PlaylistManager
@@ -11,20 +12,28 @@ public class PlaylistManager
 	public static void main(String[] args)
 	{
 		try {
+			// The jaudiotagger library is like that one guy you know
+			// who never stops talking.
 			String text = "org.jaudiotagger.level = OFF";
 			InputStream is = new ByteArrayInputStream(text.getBytes("UTF-8"));
 			LogManager.getLogManager().readConfiguration(is);
 		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
 		if(!(new File(PlaylistVariables.getFullDBName()).exists())) {
 			// DB does not exist. Create DB.
 			DatabaseCreator.createDatabase();
 		}
-		HardDrive.scanHardDrive();
+		
+		//MP3Scanner.scanPath("/Users/Clete2/Music/");
+		SongHandler sh = new SongHandler();
+		ArrayList<Song> songResult = sh.getSongsForArtist("Weird Al Yankovic");
+		Song.printSongHeader();
+		for(Song mySong : songResult) {
+			mySong.printSongInformation();
+		}
 	}
 }

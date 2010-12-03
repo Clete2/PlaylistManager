@@ -6,6 +6,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
@@ -221,5 +222,52 @@ public class SongHandler {
 		PreparedStatement ps = dbConnection.prepareStatement(query);
 		ps.setString(1, songTag.getFirst(FieldKey.ARTIST));
 		ps.executeUpdate();
+	}
+	
+	public void printSongs() {
+		if(dbConnection == null) {
+			this.prepareConnection();
+		}
+		
+		try {
+			String query = "SELECT * FROM songs";
+			PreparedStatement ps = dbConnection.prepareStatement(query);
+			ResultSet rs = ps.executeQuery();
+			while(rs.next()) {
+				System.out.println(rs.getString(1) + ", " + rs.getString(2) +
+						", " + rs.getString(3) + ", " + rs.getString(4) +
+						", " + rs.getString(5));
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public ArrayList<Song> getSongsForArtist(String artistName) {
+		ArrayList<Song> songArrayList = new ArrayList<Song>();
+		if(dbConnection == null) {
+			this.prepareConnection();
+		}
+		
+		try {
+			String query = "SELECT s.song_title, al.album_name, s.song_rating," +
+					" s.absolute_path, ar.artist_name FROM songs s, artist ar," +
+					" album al WHERE ar.artist_name = ? " +
+					"AND s.album_id = al.album_id AND ar.artist_id = al.artist_id";
+			PreparedStatement ps = dbConnection.prepareStatement(query);
+			ps.setString(1, artistName);
+			ResultSet rs = ps.executeQuery();
+			while(rs.next()) {
+				songArrayList.add(new Song(
+						rs.getString(1), rs.getString(5), rs.getString(2), 
+						rs.getString(3), rs.getString(4)));
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return songArrayList;
 	}
 }

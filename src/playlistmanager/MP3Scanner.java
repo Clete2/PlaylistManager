@@ -3,11 +3,11 @@ package playlistmanager;
 import java.io.File;
 import java.io.IOException;
 
-public class HardDrive {
+public class MP3Scanner {
 	/**
-	 * Scans the hard drive and adds the songs to the database.
+	 * Scans the path given recursively and adds mp3s found to the database.
 	 */
-	public static void scanHardDrive() {
+	public static void scanPath(String path) {
 		try {
 			new FileTraversal() {
 				public void onFile( final File f ) {
@@ -22,7 +22,7 @@ public class HardDrive {
 						e.printStackTrace();
 					}
 				}
-			}.traverse(new File(PlaylistVariables.getScanPath()));
+			}.traverse(new File(path));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
