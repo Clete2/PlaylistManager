@@ -277,8 +277,9 @@ public class SongHandler {
 		try {
 			String query = "SELECT s.song_id, s.song_title, ar.artist_name, al.album_name," +
 			" s.song_rating, al.album_genre, s.absolute_path, s.song_length" +
-			" FROM songs s, artist ar, album al WHERE ar.artist_name = ? " +
-			"AND s.album_id = al.album_id AND ar.artist_id = al.artist_id";
+			" FROM songs s, artist ar, album al WHERE ar.artist_name LIKE ?" +
+			" AND s.album_id = al.album_id AND ar.artist_id = al.artist_id" +
+			" ORDER BY ar.artist_name ASC, al.album_name ASC, s.song_id ASC";
 			PreparedStatement ps = dbConnection.prepareStatement(query);
 			ps.setString(1, artistName);
 			ResultSet rs = ps.executeQuery();
@@ -304,8 +305,9 @@ public class SongHandler {
 		try {
 			String query = "SELECT s.song_id, s.song_title, ar.artist_name, al.album_name," +
 			" s.song_rating, al.album_genre, s.absolute_path, s.song_length" +
-			" FROM songs s, artist ar, album al WHERE al.album_name = ? " +
-			"AND s.album_id = al.album_id AND ar.artist_id = al.artist_id";
+			" FROM songs s, artist ar, album al WHERE al.album_name LIKE ?" +
+			" AND s.album_id = al.album_id AND ar.artist_id = al.artist_id" +
+			" ORDER BY ar.artist_name ASC, al.album_name ASC, s.song_id ASC";
 			PreparedStatement ps = dbConnection.prepareStatement(query);
 			ps.setString(1, albumName);
 			ResultSet rs = ps.executeQuery();
@@ -330,8 +332,9 @@ public class SongHandler {
 		try {
 			String query = "SELECT s.song_id, s.song_title, ar.artist_name, al.album_name," +
 			" s.song_rating, al.album_genre, s.absolute_path, s.song_length" +
-			" FROM songs s, artist ar, album al WHERE al.album_genre = ? " +
-			"AND s.album_id = al.album_id AND ar.artist_id = al.artist_id";
+			" FROM songs s, artist ar, album al WHERE al.album_genre LIKE ?" +
+			" AND s.album_id = al.album_id AND ar.artist_id = al.artist_id" +
+			" ORDER BY ar.artist_name ASC, al.album_name ASC, s.song_id ASC";
 			PreparedStatement ps = dbConnection.prepareStatement(query);
 			ps.setString(1, genre);
 			ResultSet rs = ps.executeQuery();
@@ -361,6 +364,33 @@ public class SongHandler {
 			" ORDER BY ar.artist_name ASC, al.album_name ASC, s.song_id ASC";
 			PreparedStatement ps = dbConnection.prepareStatement(query);
 			ps.setInt(1, minRating);
+			ResultSet rs = ps.executeQuery();
+			while(rs.next()) {
+				songArrayList.add(new Song(
+						rs.getInt(1), rs.getString(2), rs.getString(3), 
+						rs.getString(4), rs.getString(5), rs.getString(6),
+						rs.getString(7), rs.getInt(8)));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return songArrayList;
+	}
+	
+	public ArrayList<Song> getSongsByTitle(String title) {
+		ArrayList<Song> songArrayList = new ArrayList<Song>();
+		if(dbConnection == null) {
+			this.prepareConnection();
+		}
+
+		try {
+			String query = "SELECT s.song_id, s.song_title, ar.artist_name, al.album_name," +
+			" s.song_rating, al.album_genre, s.absolute_path, s.song_length" +
+			" FROM songs s, artist ar, album al WHERE s.song_title LIKE ?" +
+			" AND s.album_id = al.album_id AND ar.artist_id = al.artist_id" +
+			" ORDER BY ar.artist_name ASC, al.album_name ASC, s.song_id ASC";
+			PreparedStatement ps = dbConnection.prepareStatement(query);
+			ps.setString(1, title);
 			ResultSet rs = ps.executeQuery();
 			while(rs.next()) {
 				songArrayList.add(new Song(
