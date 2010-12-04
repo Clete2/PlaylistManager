@@ -26,11 +26,11 @@ public class PlaylistManager
 		if(!(new File(PlaylistVariables.getFullDBName()).exists())) {
 			// DB does not exist. Create DB.
 			DatabaseCreator.createDatabase();
+			MP3Scanner.scanPath("/Users/Clete2/Music/");
 		}
 		
-		//MP3Scanner.scanPath("/Users/Clete2/Music/");
 		SongHandler sh = new SongHandler();
-		ArrayList<Song> songResult = sh.getSongsForArtist("Weird Al Yankovic");
+		ArrayList<Song> songResult = sh.getSongsWithRatingAbove(2);
 		Song.printSongHeader();
 		for(Song mySong : songResult) {
 			mySong.printSongInformation();

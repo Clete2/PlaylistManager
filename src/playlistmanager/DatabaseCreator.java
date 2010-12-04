@@ -2,29 +2,31 @@ package playlistmanager;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 public class DatabaseCreator {
 	private static Connection dbConnection;
-	private static Statement  dbStatement;
 
 	public static void createDatabase() {
 		try {
-			// TODO Refactor so that album has genre instead of song
 			DatabaseCreator.prepareConnection();
 			String query = "CREATE TABLE songs (song_id INTEGER PRIMARY KEY," +
-			" song_title STRING, album_id INTEGER, song_genre STRING," +
-			" song_rating INTEGER, absolute_path STRING)";
-			dbStatement.executeUpdate(query);
-			
+			" song_title STRING, album_id INTEGER, song_rating INTEGER," +
+			" absolute_path STRING)";
+			PreparedStatement ps = dbConnection.prepareStatement(query);
+			ps.executeUpdate();
+
 			query = "CREATE TABLE album (album_id INTEGER PRIMARY KEY," +
-			" album_name STRING, album_year INTEGER, artist_id INTEGER)";
-			dbStatement.executeUpdate(query);
-			
+			" album_name STRING, album_genre STRING, album_year INTEGER," +
+			" artist_id INTEGER)";
+			ps = dbConnection.prepareStatement(query);
+			ps.executeUpdate();
+
 			query = "CREATE TABLE artist (artist_id INTEGER PRIMARY KEY," +
 			" artist_name STRING)";
-			dbStatement.executeUpdate(query);
+			ps = dbConnection.prepareStatement(query);
+			ps.executeUpdate();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -42,8 +44,6 @@ public class DatabaseCreator {
 		try {
 			dbConnection = DriverManager.getConnection("jdbc:sqlite:" +
 					PlaylistVariables.getFullDBName());
-			dbStatement = dbConnection.createStatement();
-			dbStatement.setQueryTimeout(30); // 30 second timeout.
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}

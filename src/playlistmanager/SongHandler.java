@@ -16,6 +16,8 @@ import org.jaudiotagger.tag.Tag;
 public class SongHandler {
 	private static final Exception AlbumNotInDatabaseException = null;
 	private static final Exception ArtistNotInDatabaseException = null;
+	private static final Exception InvalidRatingException = null;
+	private static final Exception SongNotInDatabaseException = null;
 	private Connection dbConnection;
 
 	private void prepareConnection() {
@@ -47,7 +49,7 @@ public class SongHandler {
 	public void addSong(File songToAdd) throws Exception {
 		AudioFile audioFile = AudioFileIO.read(songToAdd);
 		Tag songTag = audioFile.getTag();
-		
+
 		if(dbConnection == null) {
 			this.prepareConnection();
 		}
@@ -60,13 +62,12 @@ public class SongHandler {
 		}
 
 		String query = "INSERT INTO songs (song_title," +
-		" album_id, song_genre, song_rating, absolute_path)" +
-		" VALUES (?, ?, ?, null, ?)";
+		" album_id, song_rating, absolute_path)" +
+		" VALUES (?, ?, null, ?)";
 		PreparedStatement ps = dbConnection.prepareStatement(query);
 		ps.setString(1, songTag.getFirst(FieldKey.TITLE));
 		ps.setInt(2, this.getAlbumID(songToAdd));
-		ps.setString(3, songTag.getFirst(FieldKey.GENRE));
-		ps.setString(4, songToAdd.getAbsolutePath());
+		ps.setString(3, songToAdd.getAbsolutePath());
 		ps.executeUpdate();
 		this.closeConnection();
 	}
@@ -94,6 +95,29 @@ public class SongHandler {
 		return found;
 	}
 
+	private boolean doesSongExist(int songID) {
+		boolean found = false;
+		if(dbConnection == null) {
+			this.prepareConnection();
+		}
+
+		try {
+			String query = "SELECT * FROM songs WHERE " +
+			"song_id = ?";
+			PreparedStatement ps = dbConnection.prepareStatement(query);
+			ps.setInt(1, songID);
+			ResultSet rs = ps.executeQuery();
+			if(rs.next()) {
+				found = true;
+			}
+			rs.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return found;
+	}
+
 	private boolean doesAlbumExist(File song) throws Exception {
 		boolean found = false;
 		AudioFile audioFile = AudioFileIO.read(song);
@@ -104,7 +128,7 @@ public class SongHandler {
 
 		try {
 			String query = "SELECT * FROM album WHERE album_name = ? AND" +
-					" album_year = ?";
+			" album_year = ?";
 			PreparedStatement ps = dbConnection.prepareStatement(query);
 			ps.setString(1, songTag.getFirst(FieldKey.ALBUM));
 			ps.setString(2, songTag.getFirst(FieldKey.YEAR));
@@ -167,7 +191,7 @@ public class SongHandler {
 		}
 		return -1;
 	}
-	
+
 	private int getArtistID(File song) throws Exception {
 		AudioFile audioFile = AudioFileIO.read(song);
 		Tag songTag = audioFile.getTag();
@@ -198,16 +222,17 @@ public class SongHandler {
 		if(dbConnection == null) {
 			this.prepareConnection();
 		}
-		
+
 		if(!doesArtistExist(songToAdd)) {
 			this.addArtist(songToAdd);
 		}
-		String query = "INSERT INTO album (album_name, album_year, artist_id)" +
-		" VALUES (?, ?, ?)";
+		String query = "INSERT INTO album (album_name, album_year, " +
+		"album_genre, artist_id) VALUES (?, ?, ?, ?)";
 		PreparedStatement ps = dbConnection.prepareStatement(query);
 		ps.setString(1, songTag.getFirst(FieldKey.ALBUM));
 		ps.setString(2, songTag.getFirst(FieldKey.YEAR));
-		ps.setInt(3, this.getArtistID(songToAdd));		
+		ps.setString(3, songTag.getFirst(FieldKey.GENRE));
+		ps.setInt(4, this.getArtistID(songToAdd));		
 		ps.executeUpdate();
 	}
 
@@ -217,57 +242,134 @@ public class SongHandler {
 		if(dbConnection == null) {
 			this.prepareConnection();
 		}
-		
+
 		String query = "INSERT INTO artist (artist_name) VALUES (?)";
 		PreparedStatement ps = dbConnection.prepareStatement(query);
 		ps.setString(1, songTag.getFirst(FieldKey.ARTIST));
 		ps.executeUpdate();
 	}
-	
-	public void printSongs() {
+
+	public void setSongRating(int rating, int songID) throws Exception {
 		if(dbConnection == null) {
 			this.prepareConnection();
 		}
-		
-		try {
-			String query = "SELECT * FROM songs";
-			PreparedStatement ps = dbConnection.prepareStatement(query);
-			ResultSet rs = ps.executeQuery();
-			while(rs.next()) {
-				System.out.println(rs.getString(1) + ", " + rs.getString(2) +
-						", " + rs.getString(3) + ", " + rs.getString(4) +
-						", " + rs.getString(5));
-			}
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if(rating > 5 || rating < 1) {
+			throw InvalidRatingException;
 		}
+		if(!doesSongExist(songID)) {
+			throw SongNotInDatabaseException;
+		}
+
+		String query = "UPDATE songs SET song_rating = ? WHERE song_id = ?";
+		PreparedStatement ps = dbConnection.prepareStatement(query);
+		ps.setInt(1, rating);
+		ps.setInt(2, songID);
+		ps.executeUpdate();
 	}
-	
+
 	public ArrayList<Song> getSongsForArtist(String artistName) {
 		ArrayList<Song> songArrayList = new ArrayList<Song>();
 		if(dbConnection == null) {
 			this.prepareConnection();
 		}
-		
+
 		try {
-			String query = "SELECT s.song_title, al.album_name, s.song_rating," +
-					" s.absolute_path, ar.artist_name FROM songs s, artist ar," +
-					" album al WHERE ar.artist_name = ? " +
-					"AND s.album_id = al.album_id AND ar.artist_id = al.artist_id";
+			String query = "SELECT s.song_id, s.song_title, ar.artist_name, al.album_name," +
+			" s.song_rating, al.album_genre, s.absolute_path FROM songs s, artist ar," +
+			" album al WHERE ar.artist_name = ? " +
+			"AND s.album_id = al.album_id AND ar.artist_id = al.artist_id";
 			PreparedStatement ps = dbConnection.prepareStatement(query);
 			ps.setString(1, artistName);
 			ResultSet rs = ps.executeQuery();
 			while(rs.next()) {
 				songArrayList.add(new Song(
-						rs.getString(1), rs.getString(5), rs.getString(2), 
-						rs.getString(3), rs.getString(4)));
+						rs.getInt(1), rs.getString(2), rs.getString(3), 
+						rs.getString(4), rs.getString(5), rs.getString(6),
+						rs.getString(7)));
 			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
+		return songArrayList;
+	}
+
+	public ArrayList<Song> getSongsForAlbum(String albumName) {
+		ArrayList<Song> songArrayList = new ArrayList<Song>();
+		if(dbConnection == null) {
+			this.prepareConnection();
+		}
+
+		try {
+			String query = "SELECT s.song_id, s.song_title, ar.artist_name, al.album_name," +
+			" s.song_rating, al.album_genre, s.absolute_path FROM songs s, artist ar," +
+			" album al WHERE al.album_name = ? " +
+			"AND s.album_id = al.album_id AND ar.artist_id = al.artist_id";
+			PreparedStatement ps = dbConnection.prepareStatement(query);
+			ps.setString(1, albumName);
+			ResultSet rs = ps.executeQuery();
+			while(rs.next()) {
+				songArrayList.add(new Song(
+						rs.getInt(1), rs.getString(2), rs.getString(3), 
+						rs.getString(4), rs.getString(5), rs.getString(6),
+						rs.getString(7)));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return songArrayList;
+	}
+
+	public ArrayList<Song> getSongsForGenre(String genre) {
+		ArrayList<Song> songArrayList = new ArrayList<Song>();
+		if(dbConnection == null) {
+			this.prepareConnection();
+		}
+
+		try {
+			String query = "SELECT s.song_id, s.song_title, ar.artist_name, al.album_name," +
+			" s.song_rating, al.album_genre, s.absolute_path FROM songs s, artist ar," +
+			" album al WHERE al.album_genre = ? " +
+			"AND s.album_id = al.album_id AND ar.artist_id = al.artist_id";
+			PreparedStatement ps = dbConnection.prepareStatement(query);
+			ps.setString(1, genre);
+			ResultSet rs = ps.executeQuery();
+			while(rs.next()) {
+				songArrayList.add(new Song(
+						rs.getInt(1), rs.getString(2), rs.getString(3), 
+						rs.getString(4), rs.getString(5), rs.getString(6),
+						rs.getString(7)));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return songArrayList;
+	}
+
+	public ArrayList<Song> getSongsWithRatingAbove(int minRating) {
+		ArrayList<Song> songArrayList = new ArrayList<Song>();
+		if(dbConnection == null) {
+			this.prepareConnection();
+		}
+
+		try {
+			String query = "SELECT s.song_id, s.song_title, ar.artist_name, al.album_name," +
+			" s.song_rating, al.album_genre, s.absolute_path FROM songs s, artist ar," +
+			" album al WHERE s.song_rating >= ?" +
+			" AND s.album_id = al.album_id AND ar.artist_id = al.artist_id" +
+			" ORDER BY ar.artist_name ASC, al.album_name ASC, s.song_id ASC";
+			PreparedStatement ps = dbConnection.prepareStatement(query);
+			ps.setInt(1, minRating);
+			ResultSet rs = ps.executeQuery();
+			while(rs.next()) {
+				songArrayList.add(new Song(
+						rs.getInt(1), rs.getString(2), rs.getString(3), 
+						rs.getString(4), rs.getString(5), rs.getString(6),
+						rs.getString(7)));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		return songArrayList;
 	}
 }
