@@ -7,6 +7,9 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.logging.LogManager;
 
+/**
+ * A sample command-line program. Edit the paths and queries below.
+ */
 public class PlaylistManager
 {
 	public static void main(String[] args)

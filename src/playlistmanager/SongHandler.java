@@ -13,6 +13,11 @@ import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
 
+/**
+ * SongHandler does most of the database logic.
+ * It includes adding songs, albums, and artists;
+ * it also searches the database.
+ */
 public class SongHandler {
 	private static final Exception AlbumNotInDatabaseException = null;
 	private static final Exception ArtistNotInDatabaseException = null;
@@ -20,6 +25,9 @@ public class SongHandler {
 	private static final Exception SongNotInDatabaseException = null;
 	private Connection dbConnection;
 
+	/**
+	 * Initialize SQLite connection.
+	 */
 	private void prepareConnection() {
 		// Load SQLite JDBC driver.
 		try {
@@ -36,6 +44,9 @@ public class SongHandler {
 		}
 	}
 
+	/**
+	 * Stop SQLite connection.
+	 */
 	private void closeConnection() {
 		if(dbConnection != null) {
 			try {
@@ -46,6 +57,11 @@ public class SongHandler {
 		}
 	}
 
+	/**
+	 * Add a song to the database. Will not add if duplicate.
+	 * @param songToAdd File to add to the database.
+	 * @throws Exception 
+	 */
 	public void addSong(File songToAdd) throws Exception {
 		AudioFile audioFile = AudioFileIO.read(songToAdd);
 		Tag songTag = audioFile.getTag();
@@ -73,6 +89,11 @@ public class SongHandler {
 		this.closeConnection();
 	}
 
+	/**
+	 * Checks to see if a specified song exists in the database.
+	 * @param songToAdd Song to check for existence. Checks by song path.
+	 * @return True if the song exists; false otherwise.
+	 */
 	private boolean doesSongExist(File songToAdd) {
 		boolean found = false;
 		if(dbConnection == null) {
@@ -96,6 +117,11 @@ public class SongHandler {
 		return found;
 	}
 
+	/**
+	 * Checks to see if a specified song exists in the database.
+	 * @param songID Song by songID.
+	 * @return True if the song exists; false otherwise.
+	 */
 	private boolean doesSongExist(int songID) {
 		boolean found = false;
 		if(dbConnection == null) {
@@ -119,6 +145,13 @@ public class SongHandler {
 		return found;
 	}
 
+	/**
+	 * Checks to see if the specified album exists.
+	 * @param song File containing the song with ID3
+	 * tag containing the album information.
+	 * @return True if the album exists, false otherwise.
+	 * @throws Exception
+	 */
 	private boolean doesAlbumExist(File song) throws Exception {
 		boolean found = false;
 		AudioFile audioFile = AudioFileIO.read(song);
@@ -144,6 +177,13 @@ public class SongHandler {
 		return found;
 	}
 
+	/**
+	 * Checks to see if the specified artist exists.
+	 * @param song File containing the song with ID3
+	 * tag containing the artist information.
+	 * @return True if the artist exists, false otherwise.
+	 * @throws Exception
+	 */
 	private boolean doesArtistExist(File song) throws Exception {
 		boolean found = false;
 		AudioFile audioFile = AudioFileIO.read(song);
@@ -168,6 +208,12 @@ public class SongHandler {
 		return found;
 	}
 
+	/**
+	 * Gets the album ID for the specified song.
+	 * @param song
+	 * @return 
+	 * @throws Exception
+	 */
 	private int getAlbumID(File song) throws Exception {
 		AudioFile audioFile = AudioFileIO.read(song);
 		Tag songTag = audioFile.getTag();
@@ -193,6 +239,12 @@ public class SongHandler {
 		return -1;
 	}
 
+	/**
+	 * Gets the artist ID for the specified song.
+	 * @param song
+	 * @return
+	 * @throws Exception
+	 */
 	private int getArtistID(File song) throws Exception {
 		AudioFile audioFile = AudioFileIO.read(song);
 		Tag songTag = audioFile.getTag();
@@ -217,6 +269,12 @@ public class SongHandler {
 		return -1;
 	}
 
+	/**
+	 * Adds an album to the database.
+	 * @param songToAdd Song containing ID3 tag with
+	 * album information.
+	 * @throws Exception
+	 */
 	private void addAlbum(File songToAdd) throws Exception {
 		AudioFile audioFile = AudioFileIO.read(songToAdd);
 		Tag songTag = audioFile.getTag();
@@ -237,6 +295,12 @@ public class SongHandler {
 		ps.executeUpdate();
 	}
 
+	/**
+	 * Adds the specified artist to the database.
+	 * @param songToAdd File with ID3 tag containing
+	 * artist information.
+	 * @throws Exception
+	 */
 	private void addArtist(File songToAdd) throws Exception {
 		AudioFile audioFile = AudioFileIO.read(songToAdd);
 		Tag songTag = audioFile.getTag();
@@ -250,6 +314,13 @@ public class SongHandler {
 		ps.executeUpdate();
 	}
 
+	/**
+	 * Sets the rating for the specified song, 1-5.
+	 * @param rating
+	 * @param songID
+	 * @throws Exception For invalid rating (> 5 || < 1) or if the
+	 * song is not in the database.
+	 */
 	public void setSongRating(int rating, int songID) throws Exception {
 		if(dbConnection == null) {
 			this.prepareConnection();
@@ -376,7 +447,7 @@ public class SongHandler {
 		}
 		return songArrayList;
 	}
-	
+
 	public ArrayList<Song> getSongsByTitle(String title) {
 		ArrayList<Song> songArrayList = new ArrayList<Song>();
 		if(dbConnection == null) {
