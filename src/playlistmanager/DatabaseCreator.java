@@ -13,7 +13,7 @@ public class DatabaseCreator {
 			DatabaseCreator.prepareConnection();
 			String query = "CREATE TABLE songs (song_id INTEGER PRIMARY KEY," +
 			" song_title STRING, album_id INTEGER, song_rating INTEGER," +
-			" absolute_path STRING)";
+			" absolute_path STRING, song_length INTEGER)";
 			PreparedStatement ps = dbConnection.prepareStatement(query);
 			ps.executeUpdate();
 

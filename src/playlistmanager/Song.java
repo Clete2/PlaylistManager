@@ -8,9 +8,10 @@ public final class Song {
 	private final String rating;
 	private final String genre;
 	private final String absolutePath;
+	private final int length;
 	
 	public Song(int songID, String title, String artist, String album, 
-			String rating, String genre, String absolutePath) {
+			String rating, String genre, String absolutePath, int length) {
 		this.songID = songID;
 		this.title = title;
 		this.artist = artist;
@@ -18,6 +19,7 @@ public final class Song {
 		this.rating = rating;
 		this.genre = genre;
 		this.absolutePath = absolutePath;
+		this.length = length;
 	}
 	
 	public int getSongID() {
@@ -46,6 +48,10 @@ public final class Song {
 	
 	public String getAbsolutePath() {
 		return this.absolutePath;
+	}
+	
+	public int getLength() {
+		return this.length;
 	}
 	
 	public static void printSongHeader() {

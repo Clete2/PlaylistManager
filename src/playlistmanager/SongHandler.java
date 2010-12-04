@@ -61,13 +61,14 @@ public class SongHandler {
 			this.addAlbum(songToAdd);
 		}
 
-		String query = "INSERT INTO songs (song_title," +
-		" album_id, song_rating, absolute_path)" +
-		" VALUES (?, ?, null, ?)";
+		String query = "INSERT INTO songs" +
+		" (song_title, album_id, song_rating, absolute_path, song_length)" +
+		" VALUES (?, ?, null, ?, ?)";
 		PreparedStatement ps = dbConnection.prepareStatement(query);
 		ps.setString(1, songTag.getFirst(FieldKey.TITLE));
 		ps.setInt(2, this.getAlbumID(songToAdd));
 		ps.setString(3, songToAdd.getAbsolutePath());
+		ps.setInt(4, audioFile.getAudioHeader().getTrackLength());
 		ps.executeUpdate();
 		this.closeConnection();
 	}
@@ -275,8 +276,8 @@ public class SongHandler {
 
 		try {
 			String query = "SELECT s.song_id, s.song_title, ar.artist_name, al.album_name," +
-			" s.song_rating, al.album_genre, s.absolute_path FROM songs s, artist ar," +
-			" album al WHERE ar.artist_name = ? " +
+			" s.song_rating, al.album_genre, s.absolute_path, s.song_length" +
+			" FROM songs s, artist ar, album al WHERE ar.artist_name = ? " +
 			"AND s.album_id = al.album_id AND ar.artist_id = al.artist_id";
 			PreparedStatement ps = dbConnection.prepareStatement(query);
 			ps.setString(1, artistName);
@@ -285,7 +286,7 @@ public class SongHandler {
 				songArrayList.add(new Song(
 						rs.getInt(1), rs.getString(2), rs.getString(3), 
 						rs.getString(4), rs.getString(5), rs.getString(6),
-						rs.getString(7)));
+						rs.getString(7), rs.getInt(8)));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -302,8 +303,8 @@ public class SongHandler {
 
 		try {
 			String query = "SELECT s.song_id, s.song_title, ar.artist_name, al.album_name," +
-			" s.song_rating, al.album_genre, s.absolute_path FROM songs s, artist ar," +
-			" album al WHERE al.album_name = ? " +
+			" s.song_rating, al.album_genre, s.absolute_path, s.song_length" +
+			" FROM songs s, artist ar, album al WHERE al.album_name = ? " +
 			"AND s.album_id = al.album_id AND ar.artist_id = al.artist_id";
 			PreparedStatement ps = dbConnection.prepareStatement(query);
 			ps.setString(1, albumName);
@@ -312,7 +313,7 @@ public class SongHandler {
 				songArrayList.add(new Song(
 						rs.getInt(1), rs.getString(2), rs.getString(3), 
 						rs.getString(4), rs.getString(5), rs.getString(6),
-						rs.getString(7)));
+						rs.getString(7), rs.getInt(8)));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -328,8 +329,8 @@ public class SongHandler {
 
 		try {
 			String query = "SELECT s.song_id, s.song_title, ar.artist_name, al.album_name," +
-			" s.song_rating, al.album_genre, s.absolute_path FROM songs s, artist ar," +
-			" album al WHERE al.album_genre = ? " +
+			" s.song_rating, al.album_genre, s.absolute_path, s.song_length" +
+			" FROM songs s, artist ar, album al WHERE al.album_genre = ? " +
 			"AND s.album_id = al.album_id AND ar.artist_id = al.artist_id";
 			PreparedStatement ps = dbConnection.prepareStatement(query);
 			ps.setString(1, genre);
@@ -338,7 +339,7 @@ public class SongHandler {
 				songArrayList.add(new Song(
 						rs.getInt(1), rs.getString(2), rs.getString(3), 
 						rs.getString(4), rs.getString(5), rs.getString(6),
-						rs.getString(7)));
+						rs.getString(7), rs.getInt(8)));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -354,8 +355,8 @@ public class SongHandler {
 
 		try {
 			String query = "SELECT s.song_id, s.song_title, ar.artist_name, al.album_name," +
-			" s.song_rating, al.album_genre, s.absolute_path FROM songs s, artist ar," +
-			" album al WHERE s.song_rating >= ?" +
+			" s.song_rating, al.album_genre, s.absolute_path, s.song_length" +
+			" FROM songs s, artist ar, album al WHERE s.song_rating >= ?" +
 			" AND s.album_id = al.album_id AND ar.artist_id = al.artist_id" +
 			" ORDER BY ar.artist_name ASC, al.album_name ASC, s.song_id ASC";
 			PreparedStatement ps = dbConnection.prepareStatement(query);
@@ -365,7 +366,7 @@ public class SongHandler {
 				songArrayList.add(new Song(
 						rs.getInt(1), rs.getString(2), rs.getString(3), 
 						rs.getString(4), rs.getString(5), rs.getString(6),
-						rs.getString(7)));
+						rs.getString(7), rs.getInt(8)));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();

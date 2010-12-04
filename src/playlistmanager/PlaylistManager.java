@@ -30,7 +30,9 @@ public class PlaylistManager
 		}
 		
 		SongHandler sh = new SongHandler();
-		ArrayList<Song> songResult = sh.getSongsWithRatingAbove(2);
+		ArrayList<Song> songResult = sh.getSongsForArtist("Weird Al Yankovic");
+		PlaylistCreator.savePlaylistFile(songResult, 
+				"/Users/Clete2/Desktop/playlist.pls");
 		Song.printSongHeader();
 		for(Song mySong : songResult) {
 			mySong.printSongInformation();
