@@ -1,6 +1,7 @@
 package playlistmanager;
 
 import java.io.File;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -10,8 +11,12 @@ import java.util.ArrayList;
 
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
+import org.jaudiotagger.audio.exceptions.CannotReadException;
+import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
+import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
+import org.jaudiotagger.tag.TagException;
 
 /**
  * SongHandler does most of the database logic.
@@ -473,5 +478,87 @@ public class SongHandler {
 			e.printStackTrace();
 		}
 		return songArrayList;
+	}
+
+	private boolean isAlbumEmpty(int albumID) throws SQLException {
+		if(dbConnection == null) {
+			this.prepareConnection();
+		}
+
+		String query = "SELECT * FROM songs s, album al WHERE " +
+		"al.album_id = ? AND s.album_id = al.album_id";
+		PreparedStatement ps = dbConnection.prepareStatement(query);
+		ps.setInt(1, albumID);
+		if(ps.execute()) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	private boolean isArtistEmpty(int artistID) throws SQLException {
+		if(dbConnection == null) {
+			this.prepareConnection();
+		}
+
+		String query = "SELECT * FROM artist ar, album al WHERE " +
+		"ar.artist_id = ? AND al.artist_id = ar.artist_id";
+		PreparedStatement ps = dbConnection.prepareStatement(query);
+		ps.setInt(1, artistID);
+		if(ps.execute()) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+	
+	public void deleteSong(Song songToDelete) throws Exception {
+		this.deleteSong(new File(songToDelete.getAbsolutePath()));
+	}
+
+	public void deleteSong(File songToDelete) throws Exception {
+		AudioFile audioFile = AudioFileIO.read(songToDelete);
+		Tag songTag = audioFile.getTag();
+		if(dbConnection == null) {
+			this.prepareConnection();
+		}
+
+		String query = "DELETE FROM songs WHERE absolute_path = ? OR (" +
+		"song_title = ? AND album_id = ?)";
+		PreparedStatement ps = dbConnection.prepareStatement(query);
+		ps.setString(1, songToDelete.getAbsolutePath());
+		ps.setString(2, songTag.getFirst(FieldKey.TITLE));
+		ps.setInt(3, this.getAlbumID(songToDelete));
+		ps.execute();
+
+		if(this.isAlbumEmpty(this.getAlbumID(songToDelete))) {
+			this.deleteAlbum(songToDelete);
+		}
+	}
+	
+	private void deleteAlbum(File songToDelete) throws Exception {
+		if(dbConnection == null) {
+			this.prepareConnection();
+		}
+
+		String query = "DELETE FROM album WHERE album_id = ?";
+		PreparedStatement ps = dbConnection.prepareStatement(query);
+		ps.setInt(1, this.getAlbumID(songToDelete));
+		ps.execute();
+
+		if(this.isArtistEmpty(this.getArtistID(songToDelete))) {
+			this.deleteArtist(songToDelete);
+		}
+	}
+	
+	private void deleteArtist(File songToDelete) throws Exception {
+		if(dbConnection == null) {
+			this.prepareConnection();
+		}
+
+		String query = "DELETE FROM artist WHERE artist_id = ?";
+		PreparedStatement ps = dbConnection.prepareStatement(query);
+		ps.setInt(1, this.getArtistID(songToDelete));
+		ps.execute();
 	}
 }
